@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "build": "echo 'No build needed here'"
+  },
   "devDependencies": {
     "gh-pages": "^6.3.0"
   },
