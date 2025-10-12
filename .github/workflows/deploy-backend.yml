@@ -1,0 +1,33 @@
+name: Deploy Backend to Render
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          npm install
+
+      - name: Deploy to Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+        run: |
+          curl -X POST "https://api.render.com/deploy/srv-d3lv4ip5pdvs73arn4i0?key=zuifXiYkDtU" \
+          -H "Authorization: Bearer ${RENDER_API_KEY}" \
+          -H "Accept: application/json"
