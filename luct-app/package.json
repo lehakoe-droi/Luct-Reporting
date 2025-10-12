@@ -16,12 +16,10 @@
     "better-sqlite3": "^12.4.1"
   },
   "devDependencies": {
-    "@testing-library/dom": "^11.0.0",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^14.6.1",
-    "gh-pages": "^6.3.0"
-  },
+  "@testing-library/dom": "^11.0.0",
+  "@testing-library/user-event": "^14.6.1",
+  "gh-pages": "^6.3.0"
+},
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",

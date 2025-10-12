@@ -100,13 +100,13 @@ const AppContent = () => {
 
 function App() {
   return (
-    <Router>
+    <>
       <AuthProvider>
         <div className="App">
           <AppContent />
         </div>
       </AuthProvider>
-    </Router>
+  </>
   );
 }
 
