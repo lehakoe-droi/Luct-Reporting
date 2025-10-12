@@ -1,0 +1,17 @@
+{
+  "files": {
+    "main.css": "/Luct-Reporting/static/css/main.e454b6ff.css",
+    "main.js": "/Luct-Reporting/static/js/main.f4cd49dc.js",
+    "static/js/453.29ab8f97.chunk.js": "/Luct-Reporting/static/js/453.29ab8f97.chunk.js",
+    "static/media/bootstrap-icons.woff?": "/Luct-Reporting/static/media/bootstrap-icons.1295669cd4e305c97f2c.woff",
+    "static/media/bootstrap-icons.woff2?": "/Luct-Reporting/static/media/bootstrap-icons.92ea18a81d737146ff04.woff2",
+    "index.html": "/Luct-Reporting/index.html",
+    "main.e454b6ff.css.map": "/Luct-Reporting/static/css/main.e454b6ff.css.map",
+    "main.f4cd49dc.js.map": "/Luct-Reporting/static/js/main.f4cd49dc.js.map",
+    "453.29ab8f97.chunk.js.map": "/Luct-Reporting/static/js/453.29ab8f97.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e454b6ff.css",
+    "static/js/main.f4cd49dc.js"
+  ]
+}
