@@ -5,9 +5,9 @@ const path = require('path');
 
 // MySQL connection configuration (without database initially)
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'hl@k0',
+  host: process.env.DB_HOST || 'gateway01.ap-southeast-1.prod.aws.tidbcloud.com',
+  user: process.env.DB_USER || '26gBsAggzLYqsJu.root',
+  password: process.env.DB_PASSWORD || 'ihMhLddb8N2c6Vup',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
@@ -16,7 +16,7 @@ const dbConfig = {
 // Configuration with database
 const dbConfigWithDB = {
   ...dbConfig,
-  database: process.env.DB_NAME || 'luct_db'
+  database: process.env.DB_NAME || 'test'
 };
 
 let db;
