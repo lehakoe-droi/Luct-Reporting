@@ -1,137 +1,101 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { useAuth } from '../context/AuthContext';
+import { analyticsAPI } from '../services/api';
 
 const Monitoring = () => {
-  const { user } = useAuth();
+  const user = useMemo(() => {
+    const storedUser = localStorage.getItem('user');
+    return storedUser ? JSON.parse(storedUser) : null;
+  }, []);
 
   const [monitoringData, setMonitoringData] = useState([]);
   const [attendanceData, setAttendanceData] = useState([]);
+  const [stats, setStats] = useState([]);
   const [timeRange, setTimeRange] = useState('week');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (user) fetchMonitoringData();
+    if (user) {
+      fetchMonitoringData();
+    }
   }, [user, timeRange]);
+
+  // Helper function to normalize API responses
+  const normalizeMonitoringResponse = (responseData) => {
+    console.log('Normalizing monitoring response:', responseData);
+    
+    if (responseData && typeof responseData === 'object') {
+      return {
+        monitoringData: Array.isArray(responseData.monitoringData) ? responseData.monitoringData : [],
+        attendanceData: Array.isArray(responseData.attendanceData) ? responseData.attendanceData : [],
+        stats: Array.isArray(responseData.stats) ? responseData.stats : []
+      };
+    }
+    
+    console.warn('Unexpected monitoring response format:', responseData);
+    return { monitoringData: [], attendanceData: [], stats: [] };
+  };
 
   const fetchMonitoringData = async () => {
     try {
-      let data = [];
-      let attendance = [];
-
-      switch (user.role) {
-        case 'Student':
-          data = [
-            { date: 'Mon', attendance: 85, progress: 78 },
-            { date: 'Tue', attendance: 88, progress: 82 },
-            { date: 'Wed', attendance: 82, progress: 85 },
-            { date: 'Thu', attendance: 90, progress: 88 },
-            { date: 'Fri', attendance: 86, progress: 90 }
-          ];
-          attendance = [
-            { subject: 'OOP', attendance: 92 },
-            { subject: 'Database', attendance: 85 },
-            { subject: 'Web Dev', attendance: 88 },
-            { subject: 'Networking', attendance: 79 }
-          ];
-          break;
-
-        case 'Lecturer':
-          data = [
-            { date: 'Mon', attendance: 85, reports: 3, feedback: 2 },
-            { date: 'Tue', attendance: 88, reports: 4, feedback: 3 },
-            { date: 'Wed', attendance: 82, reports: 2, feedback: 1 },
-            { date: 'Thu', attendance: 90, reports: 5, feedback: 4 },
-            { date: 'Fri', attendance: 86, reports: 3, feedback: 2 }
-          ];
-          attendance = [
-            { class: 'BScIT-OOP', attendance: 92 },
-            { class: 'BScIT-DB', attendance: 85 },
-            { class: 'BScSM-Web', attendance: 88 }
-          ];
-          break;
-
-        case 'Principal Lecturer':
-          data = [
-            { lecturer: 'Dr. Smith', reports: 15, attendance: 85, feedback: 12 },
-            { lecturer: 'Prof. Johnson', reports: 12, attendance: 78, feedback: 8 },
-            { lecturer: 'Dr. Williams', reports: 18, attendance: 92, feedback: 15 },
-            { lecturer: 'Ms. Brown', reports: 10, attendance: 88, feedback: 7 }
-          ];
-          attendance = [
-            { course: 'OOP', attendance: 88 },
-            { course: 'Database', attendance: 85 },
-            { course: 'Web Dev', attendance: 90 },
-            { course: 'Networking', attendance: 82 }
-          ];
-          break;
-
-        case 'Program Leader':
-          data = [
-            { course: 'OOP', students: 150, attendance: 88, satisfaction: 4.2 },
-            { course: 'Database', students: 120, attendance: 85, satisfaction: 4.4 },
-            { course: 'Web Dev', students: 180, attendance: 90, satisfaction: 4.6 },
-            { course: 'Networking', students: 100, attendance: 82, satisfaction: 4.1 }
-          ];
-          attendance = [
-            { faculty: 'ICT', performance: 87 },
-            { faculty: 'Communication', performance: 82 },
-            { faculty: 'Architecture', performance: 85 },
-            { faculty: 'Design', performance: 79 }
-          ];
-          break;
-
-        default:
-          data = [];
-          attendance = [];
-      }
-
-      setMonitoringData(data);
-      setAttendanceData(attendance);
+      setLoading(true);
+      setError(null);
+      console.log('Fetching monitoring data...');
+      
+      const response = await analyticsAPI.getMonitoringDashboard();
+      console.log('Monitoring API response:', response);
+      
+      const normalizedData = normalizeMonitoringResponse(response.data);
+      console.log('Normalized monitoring data:', normalizedData);
+      
+      setMonitoringData(normalizedData.monitoringData);
+      setAttendanceData(normalizedData.attendanceData);
+      setStats(normalizedData.stats);
     } catch (error) {
       console.error('Error fetching monitoring data:', error);
+      setError('Failed to load monitoring data: ' + (error.response?.data?.error || error.message));
+      
+      // Set fallback empty data
+      setMonitoringData([]);
+      setAttendanceData([]);
+      setStats([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const getRoleSpecificStats = () => {
-    if (!user) return [];
-    switch (user.role) {
-      case 'Student':
-        return [
-          { label: 'Overall Attendance', value: '87%', icon: 'bi-people' },
-          { label: 'Academic Progress', value: '84%', icon: 'bi-graph-up' },
-          { label: 'Completed Courses', value: '8', icon: 'bi-check-circle' },
-          { label: 'Current GPA', value: '3.8', icon: 'bi-award' }
-        ];
-      case 'Lecturer':
-        return [
-          { label: 'Avg Attendance', value: '87%', icon: 'bi-people' },
-          { label: 'Reports Submitted', value: '17', icon: 'bi-clipboard-check' },
-          { label: 'Feedback Received', value: '12', icon: 'bi-chat-left-text' },
-          { label: 'Student Satisfaction', value: '4.3/5', icon: 'bi-star' }
-        ];
-      case 'Principal Lecturer':
-        return [
-          { label: 'Faculty Attendance', value: '86%', icon: 'bi-people' },
-          { label: 'Total Reports', value: '55', icon: 'bi-clipboard-check' },
-          { label: 'Pending Feedback', value: '8', icon: 'bi-chat-left' },
-          { label: 'Lecturer Performance', value: '88%', icon: 'bi-graph-up' }
-        ];
-      case 'Program Leader':
-        return [
-          { label: 'Total Courses', value: '24', icon: 'bi-journal' },
-          { label: 'Active Lecturers', value: '18', icon: 'bi-people' },
-          { label: 'Program Attendance', value: '85%', icon: 'bi-clipboard-check' },
-          { label: 'Overall Satisfaction', value: '4.4/5', icon: 'bi-star' }
-        ];
-      default:
-        return [];
-    }
+  // Generate fallback data based on user role
+  const getFallbackData = () => {
+    if (!user) return { monitoringData: [], attendanceData: [], stats: [] };
+
+    const fallbackStats = [
+      { label: 'Overall Progress', value: '0%', icon: 'bi-graph-up' },
+      { label: 'Attendance Rate', value: '0%', icon: 'bi-people' },
+      { label: 'Completed Tasks', value: '0', icon: 'bi-check-circle' },
+      { label: 'Current Score', value: '0.0', icon: 'bi-award' }
+    ];
+
+    const fallbackMonitoring = [
+      { date: 'Mon', attendance: 0, progress: 0 },
+      { date: 'Tue', attendance: 0, progress: 0 },
+      { date: 'Wed', attendance: 0, progress: 0 },
+      { date: 'Thu', attendance: 0, progress: 0 },
+      { date: 'Fri', attendance: 0, progress: 0 }
+    ];
+
+    const fallbackAttendance = [
+      { subject: 'No Data', attendance: 100 }
+    ];
+
+    return {
+      monitoringData: fallbackMonitoring,
+      attendanceData: fallbackAttendance,
+      stats: fallbackStats
+    };
   };
 
-  const getChartTitle = () => {
+  const getChartTitle = useMemo(() => {
     if (!user) return '';
     switch (user.role) {
       case 'Student': return 'Weekly Progress';
@@ -140,7 +104,28 @@ const Monitoring = () => {
       case 'Program Leader': return 'Course Overview';
       default: return 'Monitoring Data';
     }
-  };
+  }, [user]);
+
+  // Safe arrays to prevent errors
+  const safeMonitoringData = Array.isArray(monitoringData) ? monitoringData : [];
+  const safeAttendanceData = Array.isArray(attendanceData) ? attendanceData : [];
+  const safeStats = Array.isArray(stats) ? stats : [];
+
+  // Use fallback data if no real data
+  const displayData = safeMonitoringData.length > 0 ? 
+    { monitoringData: safeMonitoringData, attendanceData: safeAttendanceData, stats: safeStats } : 
+    getFallbackData();
+
+  console.log('Monitoring component state:', {
+    user: user?.username,
+    role: user?.role,
+    monitoringDataCount: safeMonitoringData.length,
+    attendanceDataCount: safeAttendanceData.length,
+    statsCount: safeStats.length,
+    loading,
+    error,
+    usingFallback: safeMonitoringData.length === 0
+  });
 
   if (!user) {
     return (
@@ -152,9 +137,96 @@ const Monitoring = () => {
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center flex-grow-1">
-        <div className="spinner-border text-dark" role="status">
-          <span className="visually-hidden">Loading...</span>
+      <div className="monitoring-page h-100">
+        <div className="row mb-3">
+          <div className="col-12">
+            <div className="placeholder-glow">
+              <span className="placeholder col-4"></span>
+            </div>
+            <div className="placeholder-glow mt-2">
+              <span className="placeholder col-6"></span>
+            </div>
+          </div>
+        </div>
+
+        {/* Skeleton Stats */}
+        <div className="row mb-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="col-md-3 col-sm-6 mb-2">
+              <div className="card stats-card h-100 border-0 shadow-sm">
+                <div className="card-body p-3 text-center">
+                  <div className="placeholder-glow mb-2">
+                    <span className="placeholder" style={{ width: '3rem', height: '3rem', borderRadius: '50%' }}></span>
+                  </div>
+                  <div className="placeholder-glow mb-1">
+                    <span className="placeholder col-6"></span>
+                  </div>
+                  <div className="placeholder-glow">
+                    <span className="placeholder col-8"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Skeleton Charts */}
+        <div className="row flex-grow-1 mb-3 g-2">
+          <div className="col-md-8">
+            <div className="card h-100 border-0 shadow-sm">
+              <div className="card-header bg-light py-2">
+                <div className="placeholder-glow">
+                  <span className="placeholder col-4"></span>
+                </div>
+              </div>
+              <div className="card-body">
+                <div className="placeholder-glow">
+                  <span className="placeholder" style={{ width: '100%', height: '300px' }}></span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-4">
+            <div className="card h-100 border-0 shadow-sm">
+              <div className="card-header bg-light py-2">
+                <div className="placeholder-glow">
+                  <span className="placeholder col-4"></span>
+                </div>
+              </div>
+              <div className="card-body">
+                <div className="placeholder-glow">
+                  <span className="placeholder" style={{ width: '100%', height: '300px' }}></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Skeleton Activities */}
+        <div className="row">
+          <div className="col-12">
+            <div className="card border-0 shadow-sm">
+              <div className="card-header bg-light py-2">
+                <div className="placeholder-glow">
+                  <span className="placeholder col-3"></span>
+                </div>
+              </div>
+              <div className="card-body p-0">
+                <div className="list-group list-group-flush">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="list-group-item py-2">
+                      <div className="placeholder-glow">
+                        <span className="placeholder col-8"></span>
+                      </div>
+                      <div className="placeholder-glow mt-1">
+                        <span className="placeholder col-3"></span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -162,30 +234,51 @@ const Monitoring = () => {
 
   return (
     <div className="monitoring-page h-100">
+
+
+
+
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h1 className="h4">Monitoring Dashboard</h1>
-        <div className="btn-group btn-group-sm">
-          {['week','month','year'].map(range => (
-            <button 
-              key={range}
-              className={`btn btn-outline-dark ${timeRange === range ? 'active' : ''}`}
-              onClick={() => setTimeRange(range)}
-            >
-              {range.charAt(0).toUpperCase() + range.slice(1)}
-            </button>
-          ))}
+        <div>
+          <h1 className="h4">Monitoring Dashboard</h1>
+          <p className="text-muted mb-0">
+            {user.role === 'Student' ? 'Track your academic progress and attendance' :
+             user.role === 'Lecturer' ? 'Monitor teaching activities and class performance' :
+             user.role === 'Principal Lecturer' ? 'Oversee faculty performance and reports' :
+             'Monitor program performance and course statistics'}
+          </p>
+        </div>
+        <div className="d-flex align-items-center gap-2">
+          <div className="btn-group btn-group-sm">
+            {['week','month','year'].map(range => (
+              <button 
+                key={range}
+                className={`btn btn-outline-dark ${timeRange === range ? 'active' : ''}`}
+                onClick={() => setTimeRange(range)}
+              >
+                {range.charAt(0).toUpperCase() + range.slice(1)}
+              </button>
+            ))}
+          </div>
+          <button 
+            className="btn btn-outline-dark btn-sm"
+            onClick={fetchMonitoringData}
+            disabled={loading}
+          >
+            <i className="bi bi-arrow-clockwise"></i>
+          </button>
         </div>
       </div>
 
       {/* Stats */}
       <div className="row mb-3">
-        {getRoleSpecificStats().map((stat, index) => (
+        {displayData.stats.map((stat, index) => (
           <div key={index} className="col-md-3 col-sm-6 mb-2">
-            <div className="card stats-card h-100">
+            <div className="card stats-card h-100 border-0 shadow-sm">
               <div className="card-body p-3 text-center">
                 <i className={`bi ${stat.icon} display-6 text-dark mb-2`}></i>
-                <div className="stats-number" style={{ fontSize: '1.8rem' }}>{stat.value}</div>
-                <div className="stats-label">{stat.label}</div>
+                <div className="stats-number h3 text-dark mb-1">{stat.value}</div>
+                <div className="stats-label text-muted small">{stat.label}</div>
               </div>
             </div>
           </div>
@@ -195,41 +288,57 @@ const Monitoring = () => {
       {/* Charts */}
       <div className="row flex-grow-1 mb-3 g-2">
         <div className="col-md-8">
-          <div className="card h-100">
-            <div className="card-header py-2"><small>{getChartTitle()}</small></div>
+          <div className="card h-100 border-0 shadow-sm">
+            <div className="card-header bg-light py-2">
+              <small><strong>{getChartTitle}</strong></small>
+            </div>
             <div className="card-body">
               <ResponsiveContainer width="100%" height={300}>
                 {user.role === 'Program Leader' ? (
-                  <BarChart data={monitoringData}>
-                    <CartesianGrid strokeDasharray="3 3" />
+                  <BarChart data={displayData.monitoringData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="course" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="students" fill="#000" name="Students" />
-                    <Bar dataKey="attendance" fill="#333" name="Attendance %" />
-                    <Bar dataKey="satisfaction" fill="#666" name="Satisfaction" />
+                    <Bar dataKey="students" fill="#000" name="Students" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="attendance" fill="#333" name="Attendance %" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="satisfaction" fill="#666" name="Satisfaction" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 ) : user.role === 'Principal Lecturer' ? (
-                  <BarChart data={monitoringData}>
-                    <CartesianGrid strokeDasharray="3 3" />
+                  <BarChart data={displayData.monitoringData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="lecturer" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="reports" fill="#000" name="Reports" />
-                    <Bar dataKey="attendance" fill="#333" name="Attendance %" />
-                    <Bar dataKey="feedback" fill="#666" name="Feedback" />
+                    <Bar dataKey="reports" fill="#000" name="Reports" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="attendance" fill="#333" name="Attendance %" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="feedback" fill="#666" name="Feedback" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 ) : (
-                  <LineChart data={monitoringData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
+                  <LineChart data={displayData.monitoringData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="date" />
-                    <YAxis />
+                    <YAxis domain={[0, 100]} />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="attendance" stroke="#000" strokeWidth={2} name="Attendance %" />
-                    <Line type="monotone" dataKey={user.role === 'Student' ? 'progress' : 'reports'} stroke="#666" strokeWidth={2} name={user.role === 'Student' ? 'Progress %' : 'Reports'} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="attendance" 
+                      stroke="#000" 
+                      strokeWidth={2} 
+                      name="Attendance %" 
+                      dot={{ fill: '#000', strokeWidth: 2, r: 4 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey={user.role === 'Student' ? 'progress' : 'reports'} 
+                      stroke="#666" 
+                      strokeWidth={2} 
+                      name={user.role === 'Student' ? 'Progress %' : 'Reports'} 
+                      dot={{ fill: '#666', strokeWidth: 2, r: 4 }}
+                    />
                   </LineChart>
                 )}
               </ResponsiveContainer>
@@ -238,31 +347,35 @@ const Monitoring = () => {
         </div>
 
         <div className="col-md-4">
-          <div className="card h-100">
-            <div className="card-header py-2">
+          <div className="card h-100 border-0 shadow-sm">
+            <div className="card-header bg-light py-2">
               <small>
-                {user.role === 'Student' ? 'Subject Attendance' : 
-                 user.role === 'Lecturer' ? 'Class Attendance' :
-                 user.role === 'Principal Lecturer' ? 'Course Performance' : 'Faculty Performance'}
+                <strong>
+                  {user.role === 'Student' ? 'Subject Attendance' : 
+                   user.role === 'Lecturer' ? 'Class Attendance' :
+                   user.role === 'Principal Lecturer' ? 'Course Performance' : 'Faculty Performance'}
+                </strong>
               </small>
             </div>
             <div className="card-body">
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={attendanceData}
+                    data={displayData.attendanceData}
                     cx="50%"
                     cy="50%"
                     outerRadius={80}
-                    fill="#8884d8"
                     dataKey={user.role === 'Program Leader' ? 'performance' : 'attendance'}
                     label={({ name, value }) => `${name}: ${value}%`}
                   >
-                    {attendanceData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={['#000','#333','#666','#999'][index % 4]} />
+                    {displayData.attendanceData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={['#000', '#333', '#666', '#999', '#bbb', '#ddd'][index % 6]} 
+                      />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip formatter={(value) => [`${value}%`, 'Value']} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -273,22 +386,41 @@ const Monitoring = () => {
       {/* Recent Activities */}
       <div className="row">
         <div className="col-12">
-          <div className="card">
-            <div className="card-header py-2"><small>Recent Activities</small></div>
+          <div className="card border-0 shadow-sm">
+            <div className="card-header bg-light py-2">
+              <small><strong>Recent Activities</strong></small>
+            </div>
             <div className="card-body p-0">
               <div className="list-group list-group-flush">
                 <div className="list-group-item d-flex justify-content-between align-items-center py-2">
-                  <small>New report submitted for Database Systems</small>
+                  <div>
+                    <i className="bi bi-clipboard-check text-success me-2"></i>
+                    <small>New report submitted for Database Systems</small>
+                  </div>
                   <small className="text-muted">2 hours ago</small>
                 </div>
                 <div className="list-group-item d-flex justify-content-between align-items-center py-2">
-                  <small>Attendance recorded for Web Development class</small>
+                  <div>
+                    <i className="bi bi-people text-primary me-2"></i>
+                    <small>Attendance recorded for Web Development class</small>
+                  </div>
                   <small className="text-muted">5 hours ago</small>
                 </div>
                 <div className="list-group-item d-flex justify-content-between align-items-center py-2">
-                  <small>Feedback provided for OOP lecture</small>
+                  <div>
+                    <i className="bi bi-chat-left-text text-warning me-2"></i>
+                    <small>Feedback provided for OOP lecture</small>
+                  </div>
                   <small className="text-muted">1 day ago</small>
                 </div>
+                {safeMonitoringData.length === 0 && (
+                  <div className="list-group-item text-center py-3">
+                    <small className="text-muted">
+                      <i className="bi bi-info-circle me-1"></i>
+                      Real activity data will appear here once available
+                    </small>
+                  </div>
+                )}
               </div>
             </div>
           </div>

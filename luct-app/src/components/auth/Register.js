@@ -202,11 +202,10 @@ const Register = () => {
                   required
                 >
                   <option value="">Select Faculty</option>
-                  <option value="1">Faculty of Information Communication Technology</option>
-                  <option value="2">Faculty of Communication and Media</option>
-                  <option value="3">Faculty of Architecture and Interior</option>
-                  <option value="4">Faculty of Design Innovation</option>
-                  <option value="5">Faculty of Creativity in Tourism and Hospitality</option>
+                  <option value="1">FICT</option>
+                  <option value="2">FCMB</option>
+                  <option value="3">FABE</option>
+                  
                 </select>
               </div>
             </div>
