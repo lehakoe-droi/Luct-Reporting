@@ -32,16 +32,16 @@
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ],
-    "rules": {
-      "react-hooks/exhaustive-deps": "warn",
-      "jsx-a11y/anchor-is-valid": "warn",
-      "no-unused-vars": "warn"
-    }
-  },
+  "extends": [
+    "react-app",
+    "react-app/jest"
+  ],
+  "rules": {
+    "react-hooks/exhaustive-deps": "warn",
+    "jsx-a11y/anchor-is-valid": "warn",
+    "no-unused-vars": "warn"
+  }
+},
   "browserslist": {
     "production": [
       ">0.2%",
@@ -54,4 +54,5 @@
       "last 1 safari version"
     ]
   }
+  
 }
