@@ -2,7 +2,7 @@
   "name": "luct-app",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://lehakoe-droi.github.io/Luct-Reporting",
+  "homepage": ".",
   "dependencies": {
     "axios": "^1.12.2",
     "better-sqlite3": "^12.4.1",
@@ -29,19 +29,21 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "build:render": "npm run build",
+    "start:render": "serve -s build"
   },
   "eslintConfig": {
-  "extends": [
-    "react-app",
-    "react-app/jest"
-  ],
-  "rules": {
-    "react-hooks/exhaustive-deps": "warn",
-    "jsx-a11y/anchor-is-valid": "warn",
-    "no-unused-vars": "warn"
-  }
-},
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ],
+    "rules": {
+      "react-hooks/exhaustive-deps": "warn",
+      "jsx-a11y/anchor-is-valid": "warn",
+      "no-unused-vars": "warn"
+    }
+  },
   "browserslist": {
     "production": [
       ">0.2%",
@@ -54,5 +56,4 @@
       "last 1 safari version"
     ]
   }
-  
 }
