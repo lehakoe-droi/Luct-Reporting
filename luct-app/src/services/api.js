@@ -1,7 +1,7 @@
 // services/api.js
 import axios from "axios";
 
-const API_BASE_URL = 'http://localhost:5001/api';
+const API_BASE_URL = 'https://luct-reporting-backend-saus.onrender.com';
 
 // Create Axios instance with better configuration
 const api = axios.create({
