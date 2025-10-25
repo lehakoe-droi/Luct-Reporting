@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { gradesAPI, classesAPI } from '../services/api';
 
 const Grades = () => {
@@ -25,19 +25,8 @@ const Grades = () => {
     date_given: new Date().toISOString().split('T')[0]
   });
 
-  useEffect(() => {
-    if (user) {
-      fetchGrades();
-      if (user.role === 'Lecturer') {
-        fetchClasses();
-      }
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
-
   // Helper function to normalize API responses
-  const normalizeArrayResponse = (responseData) => {
+  const normalizeArrayResponse = useCallback((responseData) => {
     console.log('Normalizing response:', responseData);
     
     if (Array.isArray(responseData)) {
@@ -54,9 +43,9 @@ const Grades = () => {
       console.warn('Unexpected response format:', responseData);
       return [];
     }
-  };
+  }, []);
 
-  const fetchGrades = async () => {
+  const fetchGrades = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -76,9 +65,9 @@ const Grades = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [normalizeArrayResponse]);
 
-  const fetchClasses = async () => {
+  const fetchClasses = useCallback(async () => {
     try {
       console.log('Fetching classes for lecturer...');
       const response = await classesAPI.getClasses();
@@ -93,9 +82,9 @@ const Grades = () => {
       setError(prev => prev ? `${prev} | Classes: ${error.message}` : `Failed to load classes: ${error.message}`);
       setClasses([]);
     }
-  };
+  }, [normalizeArrayResponse]);
 
-  const fetchStudents = async (classId) => {
+  const fetchStudents = useCallback(async (classId) => {
     try {
       console.log('Fetching students for class:', classId);
 
@@ -110,7 +99,18 @@ const Grades = () => {
       setError(prev => prev ? `${prev} | Students: ${error.message}` : `Failed to load students: ${error.message}`);
       setStudents([]);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchGrades();
+      if (user.role === 'Lecturer') {
+        fetchClasses();
+      }
+    } else {
+      setLoading(false);
+    }
+  }, [user, fetchGrades, fetchClasses]); // Added fetchGrades and fetchClasses to dependencies
 
   const handleClassChange = (classId) => {
     setSelectedClass(classId);

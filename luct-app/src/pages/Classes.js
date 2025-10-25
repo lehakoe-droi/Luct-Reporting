@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { classesAPI, coursesAPI, lecturersAPI } from '../services/api';
 
 const Classes = () => {
@@ -28,18 +28,8 @@ const Classes = () => {
     total_registered_students: 0
   });
 
-  useEffect(() => {
-    if (user) {
-      fetchClasses();
-      fetchCourses();
-      fetchLecturers();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
-
   // Helper function to normalize API responses
-  const normalizeArrayResponse = (responseData) => {
+  const normalizeArrayResponse = useCallback((responseData) => {
     console.log('Normalizing response:', responseData);
     
     if (Array.isArray(responseData)) {
@@ -56,9 +46,9 @@ const Classes = () => {
       console.warn('Unexpected response format:', responseData);
       return [];
     }
-  };
+  }, []);
 
-  const fetchClasses = async () => {
+  const fetchClasses = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -78,9 +68,9 @@ const Classes = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [normalizeArrayResponse]);
 
-  const fetchCourses = async () => {
+  const fetchCourses = useCallback(async () => {
     try {
       console.log('Fetching courses...');
       const response = await coursesAPI.getCourses();
@@ -95,9 +85,9 @@ const Classes = () => {
       setError(prev => prev ? `${prev} | Courses: ${error.message}` : `Failed to load courses: ${error.message}`);
       setCourses([]);
     }
-  };
+  }, [normalizeArrayResponse]);
 
-  const fetchLecturers = async () => {
+  const fetchLecturers = useCallback(async () => {
     try {
       console.log('Fetching lecturers...');
       const response = await lecturersAPI.getLecturers();
@@ -112,7 +102,17 @@ const Classes = () => {
       setError(prev => prev ? `${prev} | Lecturers: ${error.message}` : `Failed to load lecturers: ${error.message}`);
       setLecturers([]);
     }
-  };
+  }, [normalizeArrayResponse]);
+
+  useEffect(() => {
+    if (user) {
+      fetchClasses();
+      fetchCourses();
+      fetchLecturers();
+    } else {
+      setLoading(false);
+    }
+  }, [user, fetchClasses, fetchCourses, fetchLecturers]); // Added all fetch functions to dependencies
 
   const handleChange = (e) => {
     setFormData({

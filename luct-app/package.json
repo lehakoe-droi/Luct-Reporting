@@ -35,7 +35,12 @@
     "extends": [
       "react-app",
       "react-app/jest"
-    ]
+    ],
+    "rules": {
+      "react-hooks/exhaustive-deps": "warn",
+      "jsx-a11y/anchor-is-valid": "warn",
+      "no-unused-vars": "warn"
+    }
   },
   "browserslist": {
     "production": [

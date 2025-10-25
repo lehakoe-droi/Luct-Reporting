@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { classesAPI, enrollmentsAPI } from '../services/api';
 
 const Enrollments = () => {
@@ -13,16 +13,8 @@ const Enrollments = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  useEffect(() => {
-    if (user && user.role === 'Student') {
-      fetchAvailableClasses();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
-
   // Helper function to normalize API responses
-  const normalizeArrayResponse = (responseData) => {
+  const normalizeArrayResponse = useCallback((responseData) => {
     console.log('Normalizing enrollments response:', responseData);
     
     if (Array.isArray(responseData)) {
@@ -37,9 +29,9 @@ const Enrollments = () => {
       console.warn('Unexpected enrollments response format:', responseData);
       return [];
     }
-  };
+  }, []);
 
-  const fetchAvailableClasses = async () => {
+  const fetchAvailableClasses = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -59,7 +51,15 @@ const Enrollments = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [normalizeArrayResponse]);
+
+  useEffect(() => {
+    if (user && user.role === 'Student') {
+      fetchAvailableClasses();
+    } else {
+      setLoading(false);
+    }
+  }, [user, fetchAvailableClasses]); // Added fetchAvailableClasses to dependencies
 
   const handleEnroll = async (classId, className) => {
     setEnrolling(true);

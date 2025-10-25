@@ -1,6 +1,6 @@
 // components/Ratings.jsx
-import React, { useState, useEffect } from 'react';
-import { ratingsAPI, lecturersAPI } from '../services/api';;
+import React, { useState, useEffect, useCallback } from 'react';
+import { ratingsAPI, lecturersAPI } from '../services/api';
 
 const Ratings = () => {
   const storedUser = localStorage.getItem('user');
@@ -12,61 +12,61 @@ const Ratings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (user) {
-        try {
-          setLoading(true);
-          setError(null);
+  const fetchData = useCallback(async () => {
+    if (user) {
+      try {
+        setLoading(true);
+        setError(null);
 
-          // Fetch lecturers
-          const lecturersResponse = await lecturersAPI.getLecturers();
-          setLecturers(lecturersResponse.data || []);
+        // Fetch lecturers
+        const lecturersResponse = await lecturersAPI.getLecturers();
+        setLecturers(lecturersResponse.data || []);
 
-          // Fetch ratings
-          const ratingsResponse = await ratingsAPI.getRatings();
-          let allRatings = ratingsResponse.data || [];
+        // Fetch ratings
+        const ratingsResponse = await ratingsAPI.getRatings();
+        let allRatings = ratingsResponse.data || [];
 
-          // Filter ratings based on user role
-          let filteredRatings = [];
-          if (user.role === 'Student') {
-            // Students see their own ratings
-            filteredRatings = allRatings.filter(rating => rating.user_id === user.user_id);
+        // Filter ratings based on user role
+        let filteredRatings = [];
+        if (user.role === 'Student') {
+          // Students see their own ratings
+          filteredRatings = allRatings.filter(rating => rating.user_id === user.user_id);
 
-            // Create lecturer ratings map for pre-filling
-            const lecturerRatingsMap = {};
-            lecturersResponse.data.forEach(lecturer => {
-              const existingRating = allRatings.find(r => r.lecturer_id === lecturer.user_id && r.user_id === user.user_id);
-              lecturerRatingsMap[lecturer.user_id] = {
-                rating: existingRating ? existingRating.rating : 0,
-                comments: existingRating ? existingRating.comments : ''
-              };
-            });
-            setLecturerRatings(lecturerRatingsMap);
-          } else if (user.role === 'Lecturer') {
-            // Lecturers see ratings given to them
-            filteredRatings = allRatings.filter(rating => rating.lecturer_id === user.user_id);
-          } else if (user.role === 'Principal Lecturer' || user.role === 'Program Leader') {
-            // Admin roles see all ratings
-            filteredRatings = allRatings;
-          }
-
-          setRatings(filteredRatings);
-        } catch (error) {
-          console.error('Error fetching data:', error);
-          setError('Failed to load ratings data: ' + (error.response?.data?.error || error.message));
-          setLecturers([]);
-          setRatings([]);
-        } finally {
-          setLoading(false);
+          // Create lecturer ratings map for pre-filling
+          const lecturerRatingsMap = {};
+          lecturersResponse.data.forEach(lecturer => {
+            const existingRating = allRatings.find(r => r.lecturer_id === lecturer.user_id && r.user_id === user.user_id);
+            lecturerRatingsMap[lecturer.user_id] = {
+              rating: existingRating ? existingRating.rating : 0,
+              comments: existingRating ? existingRating.comments : ''
+            };
+          });
+          setLecturerRatings(lecturerRatingsMap);
+        } else if (user.role === 'Lecturer') {
+          // Lecturers see ratings given to them
+          filteredRatings = allRatings.filter(rating => rating.lecturer_id === user.user_id);
+        } else if (user.role === 'Principal Lecturer' || user.role === 'Program Leader') {
+          // Admin roles see all ratings
+          filteredRatings = allRatings;
         }
-      } else {
+
+        setRatings(filteredRatings);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError('Failed to load ratings data: ' + (error.response?.data?.error || error.message));
+        setLecturers([]);
+        setRatings([]);
+      } finally {
         setLoading(false);
       }
-    };
+    } else {
+      setLoading(false);
+    }
+  }, [user]); // Added user as dependency
 
+  useEffect(() => {
     fetchData();
-  }, [user?.user_id]); // Changed from [user] to [user?.user_id] to prevent infinite re-renders
+  }, [fetchData]); // Added fetchData to dependencies
 
   const handleRatingChange = (lecturerId, newRating) => {
     setLecturerRatings(prev => ({

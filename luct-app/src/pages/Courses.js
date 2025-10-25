@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { coursesAPI } from '../services/api';
 
 const Courses = () => {
@@ -17,16 +17,8 @@ const Courses = () => {
     faculty_id: user?.faculty_id || ''
   });
 
-  useEffect(() => {
-    if (user) {
-      fetchCourses();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
-
   // Helper function to normalize API responses
-  const normalizeArrayResponse = (responseData) => {
+  const normalizeArrayResponse = useCallback((responseData) => {
     console.log('Normalizing courses response:', responseData);
     
     if (Array.isArray(responseData)) {
@@ -39,9 +31,9 @@ const Courses = () => {
       console.warn('Unexpected courses response format:', responseData);
       return [];
     }
-  };
+  }, []);
 
-  const fetchCourses = async () => {
+  const fetchCourses = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -61,7 +53,15 @@ const Courses = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [normalizeArrayResponse]);
+
+  useEffect(() => {
+    if (user) {
+      fetchCourses();
+    } else {
+      setLoading(false);
+    }
+  }, [user, fetchCourses]); // Added fetchCourses to dependencies
 
   const handleChange = (e) => {
     setFormData({

@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = useMemo(() => ({
     user, loading, login, register, logout, fetchProfile
-  }), [user, loading]);
+  }), [user, loading, login, register, logout, fetchProfile]); // Added all dependencies
 
   return (
     <AuthContext.Provider value={value}>

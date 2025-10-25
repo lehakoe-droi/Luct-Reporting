@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { reportsAPI, classesAPI } from '../services/api';
 import ReportForm from '../components/reports/ReportForm';
 
@@ -19,29 +19,8 @@ const Reports = () => {
   const [classFilter, setClassFilter] = useState('');
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  useEffect(() => {
-    if (user && !dataLoaded) {
-      loadData();
-    }
-  }, [user, dataLoaded]);
-
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      await Promise.all([fetchReports(), fetchClasses()]);
-      setDataLoaded(true);
-    } catch (err) {
-      console.error('Error loading data:', err);
-      setError('Failed to load data. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Helper function to normalize API responses
-  const normalizeArrayResponse = (responseData) => {
+  const normalizeArrayResponse = useCallback((responseData) => {
     if (Array.isArray(responseData)) {
       return responseData;
     } else if (responseData && Array.isArray(responseData.reports)) {
@@ -54,9 +33,9 @@ const Reports = () => {
       console.warn('Unexpected reports response format:', responseData);
       return [];
     }
-  };
+  }, []);
 
-  const fetchClasses = async () => {
+  const fetchClasses = useCallback(async () => {
     try {
       console.log('Fetching classes for reports...');
       const response = await classesAPI.getClasses();
@@ -73,9 +52,9 @@ const Reports = () => {
       setClasses([]);
       throw error;
     }
-  };
+  }, [normalizeArrayResponse]);
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     try {
       console.log('Fetching reports...');
 
@@ -93,7 +72,28 @@ const Reports = () => {
       setReports([]);
       throw error;
     }
-  };
+  }, [normalizeArrayResponse]);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await Promise.all([fetchReports(), fetchClasses()]);
+      setDataLoaded(true);
+    } catch (err) {
+      console.error('Error loading data:', err);
+      setError('Failed to load data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchReports, fetchClasses]);
+
+  useEffect(() => {
+    if (user && !dataLoaded) {
+      loadData();
+    }
+  }, [user, dataLoaded, loadData]); // Added loadData to dependencies
 
   const handleSubmitFeedback = async (reportId) => {
     setSubmitting(true);

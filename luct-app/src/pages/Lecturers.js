@@ -185,7 +185,7 @@ const Lecturers = () => {
   const isInitialLoadRef = useRef(true);
 
   // Helper function to normalize API responses
-  const normalizeArrayResponse = (responseData) => {
+  const normalizeArrayResponse = useCallback((responseData) => {
     console.log('Normalizing lecturers response:', responseData);
 
     if (Array.isArray(responseData)) {
@@ -200,7 +200,7 @@ const Lecturers = () => {
       console.warn('Unexpected lecturers response format:', responseData);
       return [];
     }
-  };
+  }, []);
 
   const fetchLecturers = useCallback(async () => {
     try {
@@ -230,7 +230,7 @@ const Lecturers = () => {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearchTerm, selectedFaculty]);
+  }, [debouncedSearchTerm, selectedFaculty, normalizeArrayResponse]);
 
   const fetchFaculties = useCallback(async () => {
     try {
@@ -240,7 +240,7 @@ const Lecturers = () => {
     } catch (error) {
       console.error('Error fetching faculties:', error);
     }
-  }, []);
+  }, [normalizeArrayResponse]);
 
   // Debounce search term to prevent excessive API calls
   useEffect(() => {
@@ -252,7 +252,6 @@ const Lecturers = () => {
   }, [searchTerm]);
 
   // Initial load
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (user?.role === 'Program Leader') {
       fetchLecturers();
@@ -261,10 +260,9 @@ const Lecturers = () => {
     } else {
       setLoading(false);
     }
-  }, [user]); // Only depend on user, not the functions
+  }, [user, fetchLecturers, fetchFaculties]); // Added fetchLecturers and fetchFaculties to dependencies
 
   // Handle search and filter changes - only after initial load
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!isInitialLoadRef.current && user?.role === 'Program Leader' && (debouncedSearchTerm || selectedFaculty !== 'all')) {
       const timer = setTimeout(() => {
@@ -272,7 +270,7 @@ const Lecturers = () => {
       }, 100); // Small delay to prevent rapid calls
       return () => clearTimeout(timer);
     }
-  }, [debouncedSearchTerm, selectedFaculty, user?.role]); // Only depend on the values, not the function
+  }, [debouncedSearchTerm, selectedFaculty, user?.role, fetchLecturers]); // Added fetchLecturers to dependencies
 
   // Modal handlers
   const handleViewProfile = (lecturer) => {
@@ -297,7 +295,7 @@ const Lecturers = () => {
     } finally {
       setLoadingClasses(false);
     }
-  }, []);
+  }, [normalizeArrayResponse]);
 
   const handleViewSchedule = (lecturer) => {
     setSelectedLecturer(lecturer);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { analyticsAPI } from '../services/api';
 
@@ -15,14 +15,8 @@ const Monitoring = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (user) {
-      fetchMonitoringData();
-    }
-  }, [user, timeRange]);
-
   // Helper function to normalize API responses
-  const normalizeMonitoringResponse = (responseData) => {
+  const normalizeMonitoringResponse = useCallback((responseData) => {
     console.log('Normalizing monitoring response:', responseData);
     
     if (responseData && typeof responseData === 'object') {
@@ -35,38 +29,10 @@ const Monitoring = () => {
     
     console.warn('Unexpected monitoring response format:', responseData);
     return { monitoringData: [], attendanceData: [], stats: [] };
-  };
-
-  const fetchMonitoringData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      console.log('Fetching monitoring data...');
-      
-      const response = await analyticsAPI.getMonitoringDashboard();
-      console.log('Monitoring API response:', response);
-      
-      const normalizedData = normalizeMonitoringResponse(response.data);
-      console.log('Normalized monitoring data:', normalizedData);
-      
-      setMonitoringData(normalizedData.monitoringData);
-      setAttendanceData(normalizedData.attendanceData);
-      setStats(normalizedData.stats);
-    } catch (error) {
-      console.error('Error fetching monitoring data:', error);
-      setError('Failed to load monitoring data: ' + (error.response?.data?.error || error.message));
-      
-      // Set fallback empty data
-      setMonitoringData([]);
-      setAttendanceData([]);
-      setStats([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, []);
 
   // Generate fallback data based on user role
-  const getFallbackData = () => {
+  const getFallbackData = useCallback(() => {
     if (!user) return { monitoringData: [], attendanceData: [], stats: [] };
 
     const fallbackStats = [
@@ -93,7 +59,41 @@ const Monitoring = () => {
       attendanceData: fallbackAttendance,
       stats: fallbackStats
     };
-  };
+  }, [user]);
+
+  const fetchMonitoringData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.log('Fetching monitoring data...');
+      
+      const response = await analyticsAPI.getMonitoringDashboard();
+      console.log('Monitoring API response:', response);
+      
+      const normalizedData = normalizeMonitoringResponse(response.data);
+      console.log('Normalized monitoring data:', normalizedData);
+      
+      setMonitoringData(normalizedData.monitoringData);
+      setAttendanceData(normalizedData.attendanceData);
+      setStats(normalizedData.stats);
+    } catch (error) {
+      console.error('Error fetching monitoring data:', error);
+      setError('Failed to load monitoring data: ' + (error.response?.data?.error || error.message));
+      
+      // Set fallback empty data
+      setMonitoringData([]);
+      setAttendanceData([]);
+      setStats([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [normalizeMonitoringResponse]);
+
+  useEffect(() => {
+    if (user) {
+      fetchMonitoringData();
+    }
+  }, [user, timeRange, fetchMonitoringData]); // Added fetchMonitoringData to dependencies
 
   const getChartTitle = useMemo(() => {
     if (!user) return '';

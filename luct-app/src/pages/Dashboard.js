@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { analyticsAPI } from '../services/api';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, AreaChart, Area
+  PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
 
 const Dashboard = () => {
@@ -16,14 +16,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (user) {
-      fetchDashboardData();
-    }
-  }, [user]);
-
   // Helper function to normalize API responses
-  const normalizeStatsResponse = (responseData) => {
+  const normalizeStatsResponse = useCallback((responseData) => {
     console.log('Normalizing dashboard response:', responseData);
     
     if (responseData && typeof responseData === 'object') {
@@ -37,9 +31,9 @@ const Dashboard = () => {
     
     console.warn('Unexpected dashboard response format:', responseData);
     return {};
-  };
+  }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -62,7 +56,13 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [normalizeStatsResponse]);
+
+  useEffect(() => {
+    if (user) {
+      fetchDashboardData();
+    }
+  }, [user, fetchDashboardData]); // Added fetchDashboardData to dependencies
 
   // Safe stats with defaults
   const safeStats = {
@@ -74,6 +74,211 @@ const Dashboard = () => {
     pending_feedback: stats.pending_feedback || 0,
     ...stats
   };
+
+  // Chart render functions
+  const renderStudentCharts = useCallback(() => {
+    return (
+      <>
+        <div className="col-md-6 mb-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-header bg-light">
+              <strong>Attendance Progress</strong>
+            </div>
+            <div className="card-body">
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={attendanceTrends}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="week" />
+                  <YAxis domain={[0, 100]} />
+                  <Tooltip />
+                  <Area 
+                    type="monotone" 
+                    dataKey="attendance_rate" 
+                    stroke="#000" 
+                    fill="#333" 
+                    fillOpacity={0.6}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-6 mb-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-header bg-light">
+              <strong>Performance Overview</strong>
+            </div>
+            <div className="card-body">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={[
+                  { subject: 'Programming', score: 85 },
+                  { subject: 'Database', score: 78 },
+                  { subject: 'Networking', score: 92 },
+                  { subject: 'Web Dev', score: 88 }
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="subject" />
+                  <YAxis domain={[0, 100]} />
+                  <Tooltip />
+                  <Bar dataKey="score" fill="#000" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }, [attendanceTrends]);
+
+  const renderLecturerCharts = useCallback(() => {
+    return (
+      <>
+        <div className="col-md-6 mb-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-header bg-light">
+              <strong>Recent Reports</strong>
+            </div>
+            <div className="card-body">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={[
+                  { week: 'Week 1', reports: 2 },
+                  { week: 'Week 2', reports: 3 },
+                  { week: 'Week 3', reports: 1 },
+                  { week: 'Week 4', reports: 4 },
+                  { week: 'Week 5', reports: 2 }
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="week" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="reports" fill="#000" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-6 mb-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-header bg-light">
+              <strong>Report Status</strong>
+            </div>
+            <div className="card-body">
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: 'Submitted', value: safeStats.total_reports || 0 },
+                      { name: 'Pending', value: Math.max(10 - (safeStats.total_reports || 0), 0) }
+                    ]}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    <Cell fill="#000" />
+                    <Cell fill="#6c757d" />
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }, [safeStats.total_reports]);
+
+  const renderPRLCharts = useCallback(() => {
+    return (
+      <>
+        <div className="col-md-6 mb-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-header bg-light">
+              <strong>Faculty Performance</strong>
+            </div>
+            <div className="card-body">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={[
+                  { lecturer: 'Dr. Smith', reports: 15, attendance: 85 },
+                  { lecturer: 'Prof. Johnson', reports: 12, attendance: 78 },
+                  { lecturer: 'Dr. Williams', reports: 18, attendance: 92 },
+                  { lecturer: 'Ms. Brown', reports: 10, attendance: 88 }
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="lecturer" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="reports" fill="#000" name="Reports Submitted" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="attendance" fill="#6c757d" name="Avg Attendance %" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-6 mb-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-header bg-light">
+              <strong>Feedback Status</strong>
+            </div>
+            <div className="card-body">
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: 'Reviewed', value: 25 },
+                      { name: 'Pending', value: safeStats.pending_feedback || 5 }
+                    ]}
+                    cx="50%" 
+                    cy="50%" 
+                    outerRadius={80} 
+                    dataKey="value" 
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    <Cell fill="#000" />
+                    <Cell fill="#6c757d" />
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }, [safeStats.pending_feedback]);
+
+  const renderPLCharts = useCallback(() => {
+    return (
+      <div className="col-12 mb-3">
+        <div className="card border-0 shadow-sm">
+          <div className="card-header bg-light">
+            <strong>Program Overview</strong>
+          </div>
+          <div className="card-body">
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={[
+                { course: 'Object-Oriented Programming', students: 150, attendance: 88, satisfaction: 4.2 },
+                { course: 'Database Systems', students: 120, attendance: 85, satisfaction: 4.4 },
+                { course: 'Computer Networking', students: 100, attendance: 82, satisfaction: 4.1 },
+                { course: 'Web Development', students: 180, attendance: 90, satisfaction: 4.6 }
+              ]}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="course" angle={-45} textAnchor="end" height={80} />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="students" fill="#000" name="Enrolled Students" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="attendance" fill="#495057" name="Attendance %" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="satisfaction" fill="#6c757d" name="Satisfaction (/5)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+    );
+  }, []);
 
   // Role-specific content
   const roleContent = useMemo(() => {
@@ -105,7 +310,7 @@ const Dashboard = () => {
       default:
         return { title: 'Dashboard', description: 'Welcome to LUCT Reporting System', charts: null };
     }
-  }, [user?.role]);
+  }, [user?.role, renderStudentCharts, renderLecturerCharts, renderPRLCharts, renderPLCharts]);
 
   // Quick actions
   const quickActions = useMemo(() => {
@@ -333,211 +538,6 @@ const Dashboard = () => {
       </div>
     </div>
   );
-
-  // Chart render functions
-  function renderStudentCharts() {
-    return (
-      <>
-        <div className="col-md-6 mb-3">
-          <div className="card border-0 shadow-sm h-100">
-            <div className="card-header bg-light">
-              <strong>Attendance Progress</strong>
-            </div>
-            <div className="card-body">
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={attendanceTrends}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="week" />
-                  <YAxis domain={[0, 100]} />
-                  <Tooltip />
-                  <Area 
-                    type="monotone" 
-                    dataKey="attendance_rate" 
-                    stroke="#000" 
-                    fill="#333" 
-                    fillOpacity={0.6}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-6 mb-3">
-          <div className="card border-0 shadow-sm h-100">
-            <div className="card-header bg-light">
-              <strong>Performance Overview</strong>
-            </div>
-            <div className="card-body">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={[
-                  { subject: 'Programming', score: 85 },
-                  { subject: 'Database', score: 78 },
-                  { subject: 'Networking', score: 92 },
-                  { subject: 'Web Dev', score: 88 }
-                ]}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="subject" />
-                  <YAxis domain={[0, 100]} />
-                  <Tooltip />
-                  <Bar dataKey="score" fill="#000" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  function renderLecturerCharts() {
-    return (
-      <>
-        <div className="col-md-6 mb-3">
-          <div className="card border-0 shadow-sm h-100">
-            <div className="card-header bg-light">
-              <strong>Recent Reports</strong>
-            </div>
-            <div className="card-body">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={[
-                  { week: 'Week 1', reports: 2 },
-                  { week: 'Week 2', reports: 3 },
-                  { week: 'Week 3', reports: 1 },
-                  { week: 'Week 4', reports: 4 },
-                  { week: 'Week 5', reports: 2 }
-                ]}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="week" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="reports" fill="#000" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-6 mb-3">
-          <div className="card border-0 shadow-sm h-100">
-            <div className="card-header bg-light">
-              <strong>Report Status</strong>
-            </div>
-            <div className="card-body">
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Submitted', value: safeStats.total_reports || 0 },
-                      { name: 'Pending', value: Math.max(10 - (safeStats.total_reports || 0), 0) }
-                    ]}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    <Cell fill="#000" />
-                    <Cell fill="#6c757d" />
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  function renderPRLCharts() {
-    return (
-      <>
-        <div className="col-md-6 mb-3">
-          <div className="card border-0 shadow-sm h-100">
-            <div className="card-header bg-light">
-              <strong>Faculty Performance</strong>
-            </div>
-            <div className="card-body">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={[
-                  { lecturer: 'Dr. Smith', reports: 15, attendance: 85 },
-                  { lecturer: 'Prof. Johnson', reports: 12, attendance: 78 },
-                  { lecturer: 'Dr. Williams', reports: 18, attendance: 92 },
-                  { lecturer: 'Ms. Brown', reports: 10, attendance: 88 }
-                ]}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="lecturer" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="reports" fill="#000" name="Reports Submitted" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="attendance" fill="#6c757d" name="Avg Attendance %" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-6 mb-3">
-          <div className="card border-0 shadow-sm h-100">
-            <div className="card-header bg-light">
-              <strong>Feedback Status</strong>
-            </div>
-            <div className="card-body">
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Reviewed', value: 25 },
-                      { name: 'Pending', value: safeStats.pending_feedback || 5 }
-                    ]}
-                    cx="50%" 
-                    cy="50%" 
-                    outerRadius={80} 
-                    dataKey="value" 
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    <Cell fill="#000" />
-                    <Cell fill="#6c757d" />
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  function renderPLCharts() {
-    return (
-      <div className="col-12 mb-3">
-        <div className="card border-0 shadow-sm">
-          <div className="card-header bg-light">
-            <strong>Program Overview</strong>
-          </div>
-          <div className="card-body">
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={[
-                { course: 'Object-Oriented Programming', students: 150, attendance: 88, satisfaction: 4.2 },
-                { course: 'Database Systems', students: 120, attendance: 85, satisfaction: 4.4 },
-                { course: 'Computer Networking', students: 100, attendance: 82, satisfaction: 4.1 },
-                { course: 'Web Development', students: 180, attendance: 90, satisfaction: 4.6 }
-              ]}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="course" angle={-45} textAnchor="end" height={80} />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="students" fill="#000" name="Enrolled Students" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="attendance" fill="#495057" name="Attendance %" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="satisfaction" fill="#6c757d" name="Satisfaction (/5)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-    );
-  }
 };
 
 export default Dashboard;

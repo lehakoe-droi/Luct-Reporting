@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { classesAPI, reportsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -21,15 +21,8 @@ const ReportForm = ({ onSubmit }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  useEffect(() => {
-    console.log('ReportForm user:', user);
-    if (user) {
-      fetchClasses();
-    }
-  }, [user]);
-
   // Helper function to normalize API responses
-  const normalizeArrayResponse = (responseData) => {
+  const normalizeArrayResponse = useCallback((responseData) => {
     console.log('Normalizing classes response:', responseData);
     
     if (Array.isArray(responseData)) {
@@ -44,9 +37,9 @@ const ReportForm = ({ onSubmit }) => {
       console.warn('Unexpected classes response format:', responseData);
       return [];
     }
-  };
+  }, []);
 
-  const fetchClasses = async () => {
+  const fetchClasses = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -77,7 +70,14 @@ const ReportForm = ({ onSubmit }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, normalizeArrayResponse]);
+
+  useEffect(() => {
+    console.log('ReportForm user:', user);
+    if (user) {
+      fetchClasses();
+    }
+  }, [user, fetchClasses]); // Added fetchClasses to dependencies
 
   const handleChange = (e) => {
     setFormData({
