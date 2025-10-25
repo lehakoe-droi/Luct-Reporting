@@ -4,7 +4,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { db, initDB, query, get, run } = require("./db");
+const { initDB, query, get, run } = require("./db");
 
 dotenv.config();
 
